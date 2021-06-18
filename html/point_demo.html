@@ -8,13 +8,14 @@
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.6.0/css/font-awesome.min.css" rel="stylesheet">
     <link href="../styles/style.css" rel="stylesheet">
+    <script src='https://kit.fontawesome.com/a076d05399.js' crossorigin='anonymous'></script>
     <script type="text/javascript" src="../js/three.js"></script>
     <script type="text/javascript" src="../js/PLYLoader.js"></script>
     <script type="module" src="../js/Raycaster.js"></script>
     <script type="text/javascript" src="../js/stats.min.js"></script>
     <script type="text/javascript" src="../js/dat.gui.min.js"></script>
     <script type="text/javascript" src="../js/OrbitControls.js"></script>
-
+    
     <!-- jquery to csv -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.11/jquery.csv.min.js"></script>
@@ -34,11 +35,11 @@
 <body>
 <nav class="tools">
     <ul id="tools">
-        <li><a href="#" id="move"><i class="fa fa-arrows"></i></a></li>
+        <li><a href="#" class="selected"  id="move"><i class="fas fa-arrows-alt"></i></a></li>
         <!-- <li><a href="#" class="selected" id="label"><i class="fa fa-pencil"></i></a></li> -->
         <!-- <li><a href="#" class="selected" id="clearBtn"><i class="fa fa-pencil"></i></a></li> -->
-        <li><a href="#" class="selected" id="activeBtn"><i class="fa fa-pencil"></i></a></li>
-        <!-- <li><a href="#" class="selected" id="deactiveBtn"><i class="fa fa-pencil"></i></a></li> -->
+        <li><a href="#"  id="activeBtn"><i class="fas fa-draw-polygon"></i></a></li>
+        <li><a href="#" id="drawCir"><i class="far fa-circle"></i></a></li>
                 <!-- <li><a href="#" class="selected" id="activeCircleBtn"><i class="fa fa-pencil"></i></a></li> -->
 
         
@@ -62,7 +63,6 @@
     function init() {
 
         var stats = initStats();
-        var points;
 
         // create a scene, that will hold all our elements such as objects, cameras and lights.
         var scene = new THREE.Scene();
@@ -88,11 +88,59 @@
 
         var cloud;
         //tool bar: click it and draw polygons
-        //click it and draw a circle
         function toolBar(){
-            document.getElementById( 'activeBtn' ).addEventListener( 'mousedown', onDocumentMouseDown, false);
+            // let clearBtn = document.getElementById('clearBtn');
+            // let activeBtn = document.getElementById('activeBtn');
+            // let deactiveBtn = document.getElementById('deactiveBtn');
+            // let activeCircleBtn = document.getElementById('activeCircleBtn');
+            // activeBtn.addEventListener('click', onDocumentMouseDown, false);
+            // activeCircleBtn.addEventListener('click', startDrawCircle, false);
+            // clearBtn.addEventListener('click', clear, false);
+            // document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+            // document.addEventListener( 'mouseup', onDocumentMouseUp, false );
+            // document.getElementById( 'save' ).addEventListener( 'click', save, false );
+            document.getElementById( 'drawCir' ).addEventListener( 'click', cirMode, false );
+            document.getElementById( 'move' ).addEventListener( 'click', moveMode, false );
+            document.getElementById( 'activeBtn' ).addEventListener( 'click', labelMode, false );
         }
+
+
+        //general click event 
         
+        function labelMode( event ) {
+            event.preventDefault();
+            orbit.enabled = false;
+
+            document.getElementById( 'activeBtn' ).className = "selected";
+            document.getElementById( 'move' ).className = "";
+            document.getElementById( 'drawCir' ).className = "";
+            document.removeEventListener('mousedown', onClickHandle, false);
+            document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+        }
+        function moveMode( event ) {
+            event.preventDefault();
+            orbit.enabled = true;
+            document.removeEventListener('mousedown', onDocumentMouseDown, false);
+            document.removeEventListener('mousedown', onClickHandle, false);
+            onDocumentMouseDown.enabled=false;
+            document.getElementById( 'activeBtn' ).className = "";
+            document.getElementById( 'drawCir' ).className = "";
+            document.getElementById( 'move' ).className = "selected";
+        }
+
+        function cirMode(event){
+            event.preventDefault();
+            orbit.enabled = false;
+            document.getElementById( 'activeBtn' ).className = "";
+            document.getElementById( 'move' ).className = "";
+            document.getElementById( 'drawCir' ).className = "selected";
+            document.removeEventListener('mousedown', onDocumentMouseDown, false);
+            document.addEventListener('mousedown', onClickHandle, false);
+            // document.addEventListener('dblclick', stopDrawCircle, false);
+            
+
+
+        }
         // add click event
         
         var points = []
@@ -103,7 +151,7 @@
             mouse.x = ( event.clientX / webGLRenderer.domElement.clientWidth ) * 2 - 1;
             mouse.y = - ( event.clientY / webGLRenderer.domElement.clientHeight ) * 2 + 1;
 
-
+            if (event.button === 0) {
             raycaster.setFromCamera( mouse, camera );
 
             var intersects = raycaster.intersectObjects( scene.children, true );
@@ -123,26 +171,59 @@
             //Draw Polygon
             points.push( new THREE.Vector3(selected.point.x,selected.point.y,selected.point.z));
             drawPolyFence();
+        }
+        if (event.button === 2) {
+
+            if (scene.getObjectByName('line_move')) {
+                
+                scene.remove(scene.getObjectByName('mesh_move'));
+                scene.remove(scene.getObjectByName('line_move'));
+                scene.remove(scene.getObjectByName('pointsField'));
+                points.shift();
+
+
+            }
+
+        }
 
       }
       render();
-
-      //Double click: start a new draw
-
-      //Right click: cancel action
-
-
+      
+      //keyboard ESC: cancel action
+    function onKeyDown(event) {
+ 
+        if (event.key === 'Escape'){
+            // esc point: 
+            if(scene.getObjectByName('pointsField')){
+                scene.remove(scene.getObjectByName('pointsField'));
+                points.shift();
+            }
+            if(scene.getObjectByName('mesh_move')){
+                scene.remove(scene.getObjectByName('mesh_move'));
+                scene.remove(scene.getObjectByName('line_move'));
+                scene.remove(scene.getObjectByName('pointsField'));
+                points.shift();
+            }
+            if (scene.getObjectByName('line_move')) {
+ 
+                scene.remove(scene.getObjectByName('line_move'));
+                points.shift();
+ 
+            }
+        }
+    }
+ 
         // Display clicked points
         function drawPoints(x,y,z){
             var pointsGeometry = new THREE.BufferGeometry();
             pointsGeometry.setAttribute( 'position', new THREE.Float32BufferAttribute( new THREE.Vector3(x,y,z).toArray(), 3 ) );
             var pointMaterial = new THREE.PointsMaterial({color: 0xffa500, size: 8});
             var pointsField = new THREE.Points(pointsGeometry, pointMaterial);
-            pointsField.userData.name = 'pointsField';
+            pointsField.name = 'pointsField';
 
             scene.add(pointsField);
-            render();
-            console.log(scene);
+            
+            // console.log(scene);
         }
 
         // Draw Ploygon
@@ -153,7 +234,7 @@
                 var y_dis = points[points.length-2].y-points[points.length-1].y;
                 var dis = Math.sqrt(x_dis*x_dis+y_dis*y_dis);
                 if (dis <10){
-                    console.log(points[points.length-2],points[0])
+                    // console.log(points[points.length-2],points[0])
                     drawLine(points[points.length-2],points[points.length-1]);
                     var shape = new THREE.Shape(conv2Vector3(points));
                     shape.moveTo(points[0].x, points[0].y,points[0].z);
@@ -161,17 +242,23 @@
                     //get the area with the side points
                     let pointsshape = shape.getPoints();
                     console.log(pointsshape);
+
                     var geometry = new THREE.ShapeGeometry(shape, 25);
                     var material = new THREE.MeshBasicMaterial( { color: 0xD8D4EA} );
                     var mesh = new THREE.Mesh( geometry, material ) ;
+                    mesh.name = 'mesh_move';
                     scene.add( mesh );
-                    console.log(shape);
+                    
+                    //draw multiple polygon
+                    points.length=0;
+                    // console.log(shape);
                 }else{
                 drawLine(points[points.length-2],points[points.length-1]);
                 }   
             }   
-        }
+        }   
         
+                   
       function drawLine(vertice1,vertice2){
  
             var material = new THREE.LineBasicMaterial( { color: 0xff0000 } );
@@ -181,6 +268,7 @@
             console.log(vertices);
             var geometry = new THREE.BufferGeometry().setFromPoints( vertices );
             var line = new THREE.Line( geometry, material );
+            line.name = 'line_move';
             scene.add(line)
          
         }
@@ -196,28 +284,88 @@
             }
             return temp;
         }
-        
-        // Draw circle:
-        
-        // function generateCircle(distance，origin){
-        //     if(scene.getObjectByName('circle')){
-        //         scene.remove(scene.getObjectByName('circle'));
-        //     }
-        //     circleGeometry = new THREE.CircleGeometry( distance, 32 );
 
-        //     let material = new THREE.MeshBasicMaterial( { 
-        //         color: 0xffff00,
-        //         side: THREE.DoubleSide,
-        //         transparent: true,
-        //         opacity: 0.5
-        //     });
-        //     let circle = new THREE.Mesh( circleGeometry, material );
-        //     circle.userData.name = 'circle';
-        //     circle.position.x = origin.x;
-        //     circle.position.y = origin.y;
-        //     circle.position.z = origin.z;
-        //     scene.add( circle );
-        // }
+        
+        // Draw circle:       
+
+        var pointArr = [];
+
+        // get the center coordinates
+        function onClickHandle(event) {
+            console.log("Draw Circle.");
+            var raycaster = new THREE.Raycaster(); // create once
+            var mouse = new THREE.Vector2(); // create once
+            mouse.x = ( event.clientX / webGLRenderer.domElement.clientWidth ) * 2 - 1;
+            mouse.y = - ( event.clientY / webGLRenderer.domElement.clientHeight ) * 2 + 1;
+
+            if (event.button === 0) {
+            raycaster.setFromCamera( mouse, camera );
+
+            var intersects = raycaster.intersectObjects( scene.children, true );
+           
+            if (intersects.length>0) {
+                var selected=intersects [0];// take the first object
+                
+                // console.log(selected.point)
+                console.log ("x coordinate:" + selected.point.x);
+                console.log ("y coordinate:" + selected.point.y);
+                console.log ("z coordinate:" + selected.point.z);
+                
+              }
+            // Display clicked points           
+            drawPoints(selected.point.x,selected.point.y,selected.point.z);
+            console.log('Circle center:');
+            console.log(selected.point);
+            //Draw Polygon
+            pointArr.push( new THREE.Vector3(selected.point.x,selected.point.y,selected.point.z));
+            
+            processDraw();
+            // draw multiple circle
+            if (pointArr.length>1){
+                pointArr.length=0;
+            } 
+                
+            } 
+        }
+
+
+        
+        // draw circle process
+        function processDraw() {
+            let fristPoint = pointArr[0];
+            // console.log(fristPoint);
+            let lastPoint = pointArr[pointArr.length-1];
+            let distance = fristPoint.distanceTo(lastPoint);
+            // console.log(distance);
+            generateCircle(distance, fristPoint);
+            
+        }
+        // Generate Circle
+        function generateCircle(distance, center) {
+            // console.log('mesh circle');
+            
+
+            let circleGeometry = new THREE.CircleGeometry(distance, 32);
+            let material = new THREE.MeshBasicMaterial({
+                color: 0xffff00,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.5
+            });
+            let circle = new THREE.Mesh(circleGeometry, material);
+            circle.name = 'mesh_move';
+            // set circle coordinates
+            circle.position.x = center.x;
+            circle.position.y = center.y;
+            circle.position.z = center.z;
+            
+            console.log('Distance:'+ distance);
+            scene.add(circle);
+            
+        }
+        
+        
+        
         // // Set grid
             // var grid = new THREE.GridHelper( 200, 20,0xffffff,0xffffff);
             // scene.add( grid );
@@ -278,7 +426,9 @@
         
          
         
-      window.addEventListener('mousedown', onDocumentMouseDown, false);
+      // window.addEventListener('mousedown', onDocumentMouseDown, false);
+      // window.addEventListener('dblclick',generateCircle,false)
+      window.addEventListener('keydown', onKeyDown, false);
 
         //Animate
         function animate() {
@@ -318,10 +468,9 @@
             document.getElementById("Stats-output").appendChild(stats.domElement);
 
             return stats;
-        }
-        
-     // bindBtnEvent();
-     // toolBar();
+        }        
+     
+        toolBar();
 }
 
 window.onload = init; 
