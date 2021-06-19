@@ -58,9 +58,15 @@
 <!-- Javascript code that runs our Three.js examples -->
 <script type="text/javascript">
 
-
+//**********Global Var************************
+    //Put the polygon position into an array
+    var polygonP = [];
+    //Put the circle center and r into an array
+    var circleP = [];
+    
     // once everything is loaded, we run our Three.js stuff.
     function init() {
+
 
         var stats = initStats();
 
@@ -85,6 +91,9 @@
 
         // add the output of the renderer to the html element
         document.getElementById("WebGL-output").appendChild(webGLRenderer.domElement);
+
+        
+
 
         var cloud;
         //tool bar: click it and draw polygons
@@ -234,6 +243,7 @@
                 var y_dis = points[points.length-2].y-points[points.length-1].y;
                 var dis = Math.sqrt(x_dis*x_dis+y_dis*y_dis);
                 if (dis <10){
+                    var tem = [];
                     // console.log(points[points.length-2],points[0])
                     drawLine(points[points.length-2],points[points.length-1]);
                     var shape = new THREE.Shape(conv2Vector3(points));
@@ -241,7 +251,10 @@
                     shape.autoClose = true;
                     //get the area with the side points
                     let pointsshape = shape.getPoints();
-                    console.log(pointsshape);
+                    tem.push(pointsshape);
+                    
+                    polygonP.push(tem);
+                    console.log(polygonP);
 
                     var geometry = new THREE.ShapeGeometry(shape, 25);
                     var material = new THREE.MeshBasicMaterial( { color: 0xD8D4EA} );
@@ -293,6 +306,7 @@
         // get the center coordinates
         function onClickHandle(event) {
             console.log("Draw Circle.");
+            
             var raycaster = new THREE.Raycaster(); // create once
             var mouse = new THREE.Vector2(); // create once
             mouse.x = ( event.clientX / webGLRenderer.domElement.clientWidth ) * 2 - 1;
@@ -318,8 +332,11 @@
             console.log(selected.point);
             //Draw Polygon
             pointArr.push( new THREE.Vector3(selected.point.x,selected.point.y,selected.point.z));
+
             
             processDraw();
+            
+            
             // draw multiple circle
             if (pointArr.length>1){
                 pointArr.length=0;
@@ -337,13 +354,17 @@
             let lastPoint = pointArr[pointArr.length-1];
             let distance = fristPoint.distanceTo(lastPoint);
             // console.log(distance);
-            generateCircle(distance, fristPoint);
+            if(distance !=0){
+                generateCircle(distance, fristPoint);
+            }
+            
             
         }
         // Generate Circle
         function generateCircle(distance, center) {
             // console.log('mesh circle');
-            
+            var c = [];
+            var wholeP = [];
 
             let circleGeometry = new THREE.CircleGeometry(distance, 32);
             let material = new THREE.MeshBasicMaterial({
@@ -358,7 +379,11 @@
             circle.position.x = center.x;
             circle.position.y = center.y;
             circle.position.z = center.z;
-            
+            c.push(circle.position);
+            console.log(c);
+            wholeP.push(c,distance);
+            circleP.push(wholeP);
+            console.log(circleP);
             console.log('Distance:'+ distance);
             scene.add(circle);
             
@@ -471,6 +496,7 @@
         }        
      
         toolBar();
+
 }
 
 window.onload = init; 
