@@ -19,6 +19,9 @@
     <!-- jquery to csv -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-csv/1.0.11/jquery.csv.min.js"></script>
+
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.min.js"></script>
     
     
     
@@ -58,14 +61,15 @@
 <!-- Javascript code that runs our Three.js examples -->
 <script type="text/javascript">
 
-//**********Global Var************************
-    //Put the polygon position into an array
-    var polygonP = [];
-    //Put the circle center and r into an array
-    var circleP = [];
-    
+
     // once everything is loaded, we run our Three.js stuff.
     function init() {
+        //**********Global Var************************
+        //Put the polygon position into an array
+        var polygonP = [];
+        //Put the circle center and r into an array
+        var circleP = [];
+
 
 
         var stats = initStats();
@@ -84,7 +88,13 @@
         webGLRenderer.setSize(window.innerWidth, window.innerHeight);
         webGLRenderer.shadowMap.enabled = false;
 
-        
+        //load csv file with d3.js
+        var dataset;
+
+        d3.csv("../assets/Morpho_nucleus.csv", function(data){
+           dataset=data;
+           });
+        // console.log(dataset);
 
         // position and point the camera to the center of the scene
         camera.position.set( 0, 0, 500 );
@@ -251,10 +261,21 @@
                     shape.autoClose = true;
                     //get the area with the side points
                     let pointsshape = shape.getPoints();
-                    tem.push(pointsshape);
                     
-                    polygonP.push(tem);
+                    console.log(pointsshape);
+                    for(var j = 0;j<pointsshape.length;j++){
+                        tem.length=0;
+                        var p_x = pointsshape[j].x; 
+                        var p_y = pointsshape[j].y; 
+                        tem.push(p_x,p_y);
+                        polygonP.push(tem);
+                        
+                };
+                    console.log(tem);
                     console.log(polygonP);
+
+                    
+                    check_in_polygon(polygonP);
 
                     var geometry = new THREE.ShapeGeometry(shape, 25);
                     var material = new THREE.MeshBasicMaterial( { color: 0xD8D4EA} );
@@ -381,9 +402,16 @@
             circle.position.z = center.z;
             c.push(circle.position);
             console.log(c);
-            wholeP.push(c,distance);
-            circleP.push(wholeP);
-            console.log(circleP);
+            for(var h = 0;h<c.length;h++){
+                        wholeP.length=0;
+                        var p_x = c[h].x; 
+                        var p_y = c[h].y; 
+                        wholeP.push(p_x,p_y);
+                               
+                };
+            check_in_circle(distance,wholeP)
+            
+            console.log(wholeP);
             console.log('Distance:'+ distance);
             scene.add(circle);
             
@@ -422,32 +450,53 @@
 
         //render ply loader
         render();
-        // Load csv file
+        // Load csv file and match the data
         
-        const loaderfile = new THREE.FileLoader();
-
-        //load a text file and output the result to the console
-        loaderfile.load(
-            // resource URL
-            '../assets/Morpho_nucleus.csv',
-
-            // onLoad callback
-            function ( data ) {
-                // output the text to the console
-                
-                console.log( data )
-            },
-
-            // onProgress callback
-            function ( xhr ) {
-                console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
-            },
-
-            // onError callback
-            function ( err ) {
-                console.error( 'An error happened' );
+        function check_in_polygon(points){
+            d3.csv("../assets/Morpho_nucleus.csv").then(function(data) {
+              data.forEach(function(d) {
+                var x = d.CentroidX; 
+                var y = d.CentroidY; 
+                // console.log( "x: " + x + "\n" + 
+                //     "y: " + y ); 
+                var tem = [x,y];
+                var testPoint = tem.map(Number);
+                // console.log(testPoint);
+                if (d3.polygonContains(points, testPoint)){
+                    console.log("Cell: "+ d.Cell_class+"\n"+
+                                "Volume:"+d.Volume+'\n'+
+                                "Compactness:"+d.Compactness+'\n'+
+                                "Elongation"+d.Elongation);
+                    }
+                });
+            });
+        };
+            
+            function check_in_circle(r,center){
+            d3.csv("../assets/Morpho_nucleus.csv").then(function(data) {
+              data.forEach(function(d) {
+                var px = d.CentroidX; 
+                var py = d.CentroidY; 
+                // console.log( "x: " + x + "\n" + 
+                //     "y: " + y ); 
+                var cx = center[0];
+                var cy = center[1];
+                if (inside_circle(px,py,cx,cy,r)){
+                    console.log("Cell: "+ d.Cell_class+"\n"+
+                                "Volume:"+d.Volume+'\n'+
+                                "Compactness:"+d.Compactness+'\n'+
+                                "Elongation"+d.Elongation);
+                    }  
+                });
+            });
+        };
+        // whether point inside a circle
+        function inside_circle(px,py,cx,cy,r){
+            if ((px - cx) * (px - cx) +(py - cy) * (py - cy) <= r * r){
+                return true;
             }
-        );
+        };
+            
         
          
         
@@ -494,12 +543,17 @@
 
             return stats;
         }        
-     
+        console.log(polygonP);
         toolBar();
+
 
 }
 
 window.onload = init; 
+
+
+
+
 </script>
 </body>
 </html>
